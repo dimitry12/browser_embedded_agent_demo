@@ -1,4 +1,10 @@
-# React Island Notes
+# Browser-Embedded Agent Demo
+
+## Motivation
+
+This demo targets existing web applications that need an AI agent to help users inside the application. Embedding the agent into the page keeps plumbing minimal: the agent operates directly on the same web page the user is looking at, which makes assistance visually intuitive.
+
+No extra server-side agent endpoint or app-specific authentication is required. The page already defines the scope and boundary of what the agent can see and do.
 
 ## Embedding bundled UI in plain HTML
 
@@ -15,7 +21,7 @@ The bundle mounts React into one normal DOM node:
 <section id="react-panel"></section>
 ```
 
-This lets any plain HTML page "hotlink" the island script and get the bundled React functionality without converting the page to React.
+This lets any plain HTML page hotlink the island script and get bundled React functionality without converting the page to React.
 
 ## Endpointless Vercel AI SDK agent loop
 
@@ -42,3 +48,11 @@ The host page exposes game state/actions through plain browser APIs, not React A
 - `hanoi:move-requested` event
 
 Agent tools call these APIs or dispatch these events. Because the boundary is just `window` plus `CustomEvent`, the host can be vanilla HTML, React, Vue, Svelte, or anything else.
+
+This is similar in spirit to WebMCP: the page exposes a browser-native capability surface, and the agent uses that surface without needing framework-specific integration.
+
+## LLM provider notes
+
+For an internal proof of concept, `config.local.js` can provide a browser-visible API key. In a real deployment, keys can be dynamically issued for this client-side agent loop, with per-key budgets or limits set by the provider or issuing service.
+
+The LLM provider must support browser CORS for direct requests. If it does not, the browser cannot call the provider directly and a proxy/backend endpoint is required.
