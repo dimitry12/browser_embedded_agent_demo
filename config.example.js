@@ -3,4 +3,5 @@
 window.HANOI_AGENT_CONFIG = {
   openRouterApiKey: '',
   model: 'deepseek/deepseek-v4-pro',
+  agentSteps: 6,
 };

@@ -15,6 +15,7 @@ import { z } from 'zod';
 
 const DEFAULT_MODEL = window.HANOI_AGENT_CONFIG?.model ?? 'deepseek/deepseek-v4-pro';
 const DEFAULT_OPENROUTER_API_KEY = window.HANOI_AGENT_CONFIG?.openRouterApiKey ?? '';
+const DEFAULT_AGENT_STEPS = window.HANOI_AGENT_CONFIG?.agentSteps ?? 6;
 
 function buildBrowserModel(byokConfig) {
   const openrouter = createOpenRouter({
@@ -26,7 +27,7 @@ function buildBrowserModel(byokConfig) {
   return openrouter.chat(byokConfig.model);
 }
 
-const clientToolDefinitions = {
+const agentTools = {
   getGameState: tool({
     description: 'Read the current Tower of Hanoi game state.',
     inputSchema: z.object({}),
@@ -83,11 +84,11 @@ async function runBrowserStream({ init, byokConfig }) {
       'Do not use Markdown formatting in responses. Reply in plain text only.',
     ].join(' '),
     messages: await convertToModelMessages(uiMessages, {
-      tools: clientToolDefinitions,
+      tools: agentTools,
       ignoreIncompleteToolCalls: true,
     }),
-    tools: clientToolDefinitions,
-    stopWhen: stepCountIs(6),
+    tools: agentTools,
+    stopWhen: stepCountIs(byokConfig.agentSteps),
   });
 
   return result.toUIMessageStreamResponse();
@@ -146,12 +147,8 @@ function Chat({ byokConfig }) {
     }),
   }), []);
 
-  const { messages, sendMessage, status, error, addToolOutput } = useChat({ transport });
+  const { messages, sendMessage, status, error } = useChat({ transport });
   const [input, setInput] = useState('');
-
-  // Present on the hook for non-auto-executing client tools. In this demo the
-  // tools include execute functions, so the browser stream loop runs them itself.
-  void addToolOutput;
 
   function submitMessage(event) {
     event.preventDefault();
@@ -190,8 +187,9 @@ function Chat({ byokConfig }) {
 function ReactIsland() {
   const [apiKey, setApiKey] = useState(DEFAULT_OPENROUTER_API_KEY);
   const [model, setModel] = useState(DEFAULT_MODEL);
+  const [agentSteps, setAgentSteps] = useState(DEFAULT_AGENT_STEPS);
   const [collapsed, setCollapsed] = useState(false);
-  const byokConfig = useMemo(() => ({ apiKey, model }), [apiKey, model]);
+  const byokConfig = useMemo(() => ({ apiKey, model, agentSteps }), [apiKey, model, agentSteps]);
 
   return (
     <div className={`react-island${collapsed ? ' collapsed' : ''}`}>
@@ -228,6 +226,21 @@ function ReactIsland() {
                 value={model}
                 onChange={event => setModel(event.target.value)}
                 placeholder={DEFAULT_MODEL}
+              />
+            </label>
+
+            <label>
+              Agent steps per turn
+              <input
+                type="number"
+                min="1"
+                max="20"
+                step="1"
+                value={agentSteps}
+                onChange={event => {
+                  const value = Number(event.target.value) || 1;
+                  setAgentSteps(Math.max(1, Math.min(20, value)));
+                }}
               />
             </label>
           </div>
