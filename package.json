@@ -1,0 +1,22 @@
+{
+  "name": "browser_embedded_agent_demo",
+  "version": "1.0.0",
+  "description": "Plain HTML Tower of Hanoi page with an embedded React AI SDK island.",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "build": "esbuild src/react-island.jsx --bundle --minify --format=iife --outfile=dist/react-island.js",
+    "check": "npm run build && test -s index.html && test -s dist/react-island.js"
+  },
+  "dependencies": {
+    "@ai-sdk/react": "3.0.193",
+    "@openrouter/ai-sdk-provider": "2.9.0",
+    "ai": "6.0.191",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "zod": "4.4.3"
+  },
+  "devDependencies": {
+    "esbuild": "0.28.0"
+  }
+}

@@ -1,0 +1,256 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Hanoi</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      display: grid;
+      place-items: center;
+      background: #f7f3ea;
+      font-family: system-ui, sans-serif;
+    }
+
+    #page {
+      display: grid;
+      gap: 18px;
+      justify-items: center;
+    }
+
+    #game {
+      display: flex;
+      gap: 24px;
+      align-items: end;
+      padding: 24px;
+    }
+
+    .tower {
+      width: 140px;
+      height: 220px;
+      border: 0;
+      border-bottom: 10px solid #6f5638;
+      background:
+        linear-gradient(#6f5638, #6f5638) center bottom / 10px 190px no-repeat;
+      display: flex;
+      flex-direction: column-reverse;
+      align-items: center;
+      gap: 4px;
+      padding: 0 0 8px;
+      cursor: pointer;
+    }
+
+    .tower.selected {
+      outline: 4px solid #3b82f6;
+      outline-offset: 6px;
+    }
+
+    .disk {
+      height: 28px;
+      border-radius: 14px;
+      background: #d97706;
+      box-shadow: inset 0 -3px 0 rgb(0 0 0 / 0.15);
+      z-index: 1;
+    }
+
+    .disk.size-1 { width: 54px; background: #60a5fa; }
+    .disk.size-2 { width: 82px; background: #34d399; }
+    .disk.size-3 { width: 110px; background: #f59e0b; }
+
+    #react-panel {
+      position: fixed;
+      right: 16px;
+      bottom: 16px;
+      z-index: 10;
+      width: min(520px, calc(100vw - 32px));
+      min-height: 42px;
+    }
+
+    .react-island {
+      display: grid;
+      gap: 12px;
+      max-height: calc(100vh - 32px);
+      overflow: auto;
+      padding: 12px;
+      border: 1px solid #d6c8b3;
+      border-radius: 10px;
+      background: #fffaf0;
+      box-shadow: 0 12px 32px rgb(0 0 0 / 0.18);
+    }
+
+    .react-island.collapsed {
+      width: max-content;
+      max-width: calc(100vw - 32px);
+    }
+
+    .island-header {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .hanoi-status {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+    }
+
+    .chat-panel {
+      display: grid;
+      gap: 8px;
+    }
+
+    .messages {
+      display: grid;
+      gap: 6px;
+      min-height: 24px;
+      max-height: 180px;
+      overflow: auto;
+    }
+
+    .chat-panel input,
+    .byok-config input {
+      box-sizing: border-box;
+      width: 100%;
+      border: 1px solid #bba98d;
+      border-radius: 8px;
+      padding: 8px 10px;
+      font: inherit;
+    }
+
+    .byok-config {
+      display: grid;
+      gap: 8px;
+    }
+
+    .byok-config label {
+      display: grid;
+      gap: 4px;
+      font-size: 0.9rem;
+    }
+
+    .tool-part {
+      color: #6f5638;
+      font-size: 0.9rem;
+    }
+
+    .react-island button {
+      border: 1px solid #bba98d;
+      border-radius: 8px;
+      background: white;
+      padding: 6px 10px;
+      cursor: pointer;
+    }
+
+    .error {
+      color: #b91c1c;
+    }
+  </style>
+</head>
+<body>
+  <main id="page">
+    <div id="game" aria-label="Tower of Hanoi game"></div>
+    <section id="react-panel" aria-label="React component demo"></section>
+  </main>
+
+  <script>
+    let towers = [[3, 2, 1], [], []];
+    let selectedTower = null;
+    let moves = 0;
+    const game = document.querySelector('#game');
+
+    function publicState() {
+      return {
+        towers: towers.map(tower => [...tower]),
+        selectedTower,
+        moves,
+        won: towers[2].length === 3
+      };
+    }
+
+    function announceState() {
+      window.dispatchEvent(new CustomEvent('hanoi:state-changed', {
+        detail: publicState()
+      }));
+    }
+
+    function draw() {
+      game.innerHTML = '';
+
+      towers.forEach((tower, towerIndex) => {
+        const button = document.createElement('button');
+        button.className = 'tower' + (selectedTower === towerIndex ? ' selected' : '');
+        button.type = 'button';
+        button.setAttribute('aria-label', `Tower ${towerIndex + 1}`);
+        button.addEventListener('click', () => clickTower(towerIndex));
+
+        tower.forEach(size => {
+          const disk = document.createElement('div');
+          disk.className = `disk size-${size}`;
+          button.appendChild(disk);
+        });
+
+        game.appendChild(button);
+      });
+
+      announceState();
+    }
+
+    function moveDisk(sourceTower, destinationTower) {
+      const from = towers[sourceTower];
+      const to = towers[destinationTower];
+      const disk = from?.[from.length - 1];
+
+      if (disk && (!to.length || disk < to[to.length - 1])) {
+        to.push(from.pop());
+        moves += 1;
+        selectedTower = null;
+        draw();
+        return true;
+      }
+
+      selectedTower = null;
+      draw();
+      return false;
+    }
+
+    function clickTower(towerIndex) {
+      if (selectedTower === null) {
+        if (towers[towerIndex].length) selectedTower = towerIndex;
+        draw();
+        return;
+      }
+
+      if (selectedTower === towerIndex) {
+        selectedTower = null;
+        draw();
+        return;
+      }
+
+      moveDisk(selectedTower, towerIndex);
+    }
+
+    function resetGame() {
+      towers = [[3, 2, 1], [], []];
+      selectedTower = null;
+      moves = 0;
+      draw();
+    }
+
+    window.hanoi = { getState: publicState, moveDisk, reset: resetGame };
+    window.addEventListener('hanoi:reset-requested', resetGame);
+    window.addEventListener('hanoi:move-requested', event => {
+      moveDisk(event.detail.from, event.detail.to);
+    });
+
+    draw();
+  </script>
+
+  <script src="config.local.js"></script>
+  <script src="dist/react-island.js" defer></script>
+</body>
+</html>
